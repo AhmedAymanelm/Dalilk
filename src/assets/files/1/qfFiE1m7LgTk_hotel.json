@@ -1,0 +1,22 @@
+[
+  {"name": "Hilton Cairo", "address": "15 Tahrir Square, Cairo, Egypt", "rating": 4.5},
+  {"name": "Marriott Alexandria", "address": "Corniche El Nile, Alexandria, Egypt", "rating": 4.2},
+  {"name": "Four Seasons Sharm El Sheikh", "address": "Naama Bay, Sharm El Sheikh, Egypt", "rating": 4.8},
+  {"name": "Sofitel Luxor", "address": "Corniche El Nile, Luxor, Egypt", "rating": 4.3},
+  {"name": "Steigenberger Hotel El Gouna", "address": "El Gouna, Red Sea, Egypt", "rating": 4.6},
+  {"name": "Rixos Premium Hurghada", "address": "Sahl Hasheesh, Hurghada, Egypt", "rating": 4.7},
+  {"name": "Concorde El Salam Hotel Cairo", "address": "Garden City, Cairo, Egypt", "rating": 4.1},
+  {"name": "Kempinski Nile Hotel Cairo", "address": "Garden City, Cairo, Egypt", "rating": 4.4},
+  {"name": "Baron Palace Sahl Hasheesh", "address": "Sahl Hasheesh, Hurghada, Egypt", "rating": 4.6},
+  {"name": "Jaz Aquamarine Resort", "address": "Hurghada, Red Sea, Egypt", "rating": 4.5},
+  {"name": "Sunrise Arabian Beach Resort", "address": "Makadi Bay, Hurghada, Egypt", "rating": 4.3},
+  {"name": "Movenpick Resort Sharm El Sheikh", "address": "Shark's Bay, Sharm El Sheikh, Egypt", "rating": 4.7},
+  {"name": "Baron Resort Sharm El Sheikh", "address": "Naama Bay, Sharm El Sheikh, Egypt", "rating": 4.4},
+  {"name": "Sofitel Winter Palace Luxor", "address": "Luxor, Egypt", "rating": 4.8},
+  {"name": "Steigenberger Cecil Alexandria", "address": "Corniche, Alexandria, Egypt", "rating": 4.3},
+  {"name": "Sonesta St. George Hotel Cairo", "address": "Garden City, Cairo, Egypt", "rating": 4.2},
+  {"name": "Jaz Makadi Saraya Resort", "address": "Makadi Bay, Hurghada, Egypt", "rating": 4.6},
+  {"name": "The Oberoi Sahl Hasheesh", "address": "Sahl Hasheesh, Hurghada, Egypt", "rating": 4.9},
+  {"name": "Baron Palace Sahl Hasheesh", "address": "Sahl Hasheesh, Hurghada, Egypt", "rating": 4.7},
+  {"name": "Steigenberger Aqua Magic", "address": "Hurghada, Red Sea, Egypt", "rating": 4.5}
+]

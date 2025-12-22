@@ -13,6 +13,7 @@ class Asset(BaseModel):
     asset_size : int = Field(gt= 0,default=0)
     assets_config : dict = Field(default= None ) 
     asset_push_at : datetime  = Field(default=datetime.utcnow)
+    
 
 
 

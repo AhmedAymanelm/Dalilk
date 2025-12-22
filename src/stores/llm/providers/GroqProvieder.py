@@ -1,117 +1,112 @@
 from ..LLMinterfacefactory import LLMInterfaceFactory
 from ..llmEnum import GROQENUM
 from groq import Groq
-import logging 
+import logging
 
 
-class GroqProvider(LLMInterfaceFactory):
-    def __init__(self, api_key: str, api_url: str = None,
-                 defult_input_max_character: int = 1000,
-                 defult_output_max_character: int = 1000,
-                 defult_generation_temperature: float = 0.1):
-        
+class GroqProviders(LLMInterfaceFactory):
+    def __init__(
+        self,
+        api_key: str,
+        api_url: str = None,
+        defult_input_max_character: int = 1000,
+        defult_output_max_character: int = 1000,
+        defult_generation_temperature: float = 0.1,
+    ):
         self.api_key = api_key
         self.api_url = api_url
-
-     
-        self.client = Groq(
-            api_key=api_key,
-            api_url=api_url)
-
         self.defult_input_max_character = defult_input_max_character
         self.defult_output_max_character = defult_output_max_character
         self.defult_generation_temperature = defult_generation_temperature
 
         self.generate_model_id = None
-        self.embedding_model_id = None
+        self.emmbedding_model_id = None
         self.embedding_size = None
 
+        # Initialize Groq client
+        self.client = Groq(api_key=self.api_key, base_url=self.api_url) if self.api_url else Groq(api_key=self.api_key)
+
+        self.enums = GROQENUM
         self.logger = logging.getLogger(__name__)
 
 
     def set_generation_model(self, model_id: str):
         self.generate_model_id = model_id
 
-    def set_embedding_model(self, model_id: str, embedding_size: int):
-        self.embedding_model_id = model_id
+    def set_Emmbidding_model(self, model_id: str, embedding_size: int):
+        self.emmbedding_model_id = model_id
         self.embedding_size = embedding_size
 
+    def set_embedding_model(self, model_id: str, embedding_size: int):
+        return self.set_Emmbidding_model(model_id, embedding_size)
 
-
+   
     def process_text(self, text: str):
-        return text[:self.defult_input_max_character].strip()
+        return text[: self.defult_input_max_character].strip()
 
 
-    def generate_text(self, prompt: str, chat_history: list = [], 
-                      max_out_tokens: int = None, temperature: float = None, stream: bool = False):
-        
+    def generate_text(self, prompt: str, chat_history: list = [], max_out_tokens: int = None, temperature: float = None):
         if not self.client:
-            self.logger.error("Groq client is not initialized")
+            self.logger.error(" Groq client not initialized")
             return None
-
         if not self.generate_model_id:
-            self.logger.error("Groq generation model is not set")
+            self.logger.error(" Groq generate model not set")
             return None
 
-        max_out_tokens = max_out_tokens if max_out_tokens else self.defult_output_max_character
-        temperature = temperature if temperature else self.defult_generation_temperature
+        temperature = temperature or self.defult_generation_temperature
+        max_tokens = max_out_tokens or self.defult_output_max_character
 
-        chat_history.append(
-            self.constract_prompt(prompt=prompt, role=GROQENUM.USER.value)
-        )
+        messages = []
+        for msg in chat_history:
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": self.process_text(prompt)})
 
-        if stream:
-            # Streaming mode
-            with self.client.chat.completions.stream(
-                model=self.generate_model_id,
-                messages=chat_history,
-                max_tokens=max_out_tokens,
-                temperature=temperature
-            ) as stream_response:
-                for event in stream_response:
-                    if event.type == "message.delta" and event.delta.content:
-                        yield event.delta.content
-        else:
-            # Normal (non-streaming)
+        try:
             response = self.client.chat.completions.create(
                 model=self.generate_model_id,
-                messages=chat_history,
-                max_tokens=max_out_tokens,
-                temperature=temperature
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
             )
 
-            if not response or not response.choices or len(response.choices) == 0 or not response.choices[0].message:
-                self.logger.error("Groq generation request failed")
-                return None
+            if hasattr(response, "choices") and len(response.choices) > 0:
+                choice = response.choices[0]
+                if hasattr(choice, "message") and hasattr(choice.message, "content"):
+                    return choice.message.content
+            return response
 
-            return response.choices[0].message["content"]
+        except Exception as e:
+            self.logger.error(f"💥 Groq chat request failed: {e}")
+            raise e
 
+    def embed_text(self, text: str, dcoument_type: str = None):
+        """
+        ⚠️ Groq لا يدعم Embeddings حالياً
+        يمكنك استخدام OpenAI أو Cohere للـ Embeddings
+        """
+        try:
+            if not self.emmbedding_model_id:
+                raise ValueError(" Embedding model not set for Groq")
 
+            raise NotImplementedError("Groq does not support embeddings. Use OpenAI or Cohere instead.")
 
-    def embed_text(self, text: str, document_type: str = None):
-        if not self.client:
-            self.logger.error("Groq client is not initialized")
-            return None
+        except Exception as e:
+            self.logger.error(f" Error getting embedding: {e}")
+            raise e
 
-        if not self.embedding_model_id:
-            self.logger.error("Groq embedding model is not set")
-            return None
-
-        response = self.client.embeddings.create(
-            input=text,
-            model=self.embedding_model_id
-        )
-
-        if not response or not response.data or len(response.data) == 0 or not response.data[0].embedding:
-            self.logger.error("Groq embedding request failed")
-            return None
-
-        return response.data[0].embedding
-
-
-
+    def embed(self, texts: list[str], model: str = None, input_type: str = None):
+  
+        embeddings = []
+        for text in texts:
+            try:
+                emb = self.embed_text(text, dcoument_type=input_type)
+                if emb:
+                    embeddings.append(emb)
+            except NotImplementedError:
+                self.logger.warning("⚠️ Embeddings not supported by Groq")
+                break
+        return embeddings
+    
     def constract_prompt(self, prompt: str, role: str):
-        return {
-            "role": role,
-            "content": self.process_text(prompt)
-        }
+        return {"role": role, "content": self.process_text(prompt)}

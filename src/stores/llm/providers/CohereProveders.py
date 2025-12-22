@@ -5,9 +5,14 @@ import logging
 
 
 class CohereProvider(LLMInterfaceFactory):
-    def __init__(self, api_key: str, api_url: str = None, defult_input_max_character: int = 1000,
-                 defult_output_max_character: int = 1000, defult_generation_temperature: float = 0.1):
-        
+    def __init__(
+        self,
+        api_key: str,
+        api_url: str = None,
+        defult_input_max_character: int = 1000,
+        defult_output_max_character: int = 1000,
+        defult_generation_temperature: float = 0.1,
+    ):
         self.api_key = api_key
         self.api_url = api_url
         self.defult_input_max_character = defult_input_max_character
@@ -18,13 +23,12 @@ class CohereProvider(LLMInterfaceFactory):
         self.emmbedding_model_id = None
         self.embedding_size = None
 
-        # Initialize Cohere client
-        if self.api_url:
-            self.client = cohere.ClientV2(self.api_key, api_url=self.api_url)
-        else:
-            self.client = cohere.ClientV2(self.api_key)
+        # Initialize Cohere V2 client
+        self.client = cohere.ClientV2(self.api_key, api_url=self.api_url) if self.api_url else cohere.ClientV2(self.api_key)
 
+        self.enums = CohereENUM
         self.logger = logging.getLogger(__name__)
+
 
     def set_generation_model(self, model_id: str):
         self.generate_model_id = model_id
@@ -39,126 +43,78 @@ class CohereProvider(LLMInterfaceFactory):
     def process_text(self, text: str):
         return text[: self.defult_input_max_character].strip()
 
+
     def generate_text(self, prompt: str, chat_history: list = [], max_out_tokens: int = None, temperature: float = None):
         if not self.client:
-            self.logger.error("Cohere client not initialized")
+            self.logger.error(" Cohere client not initialized")
             return None
         if not self.generate_model_id:
-            self.logger.error("Cohere generate model not set")
+            self.logger.error(" Cohere generate model not set")
             return None
 
-        temperature = temperature if temperature is not None else self.defult_generation_temperature
-        max_tokens = max_out_tokens if max_out_tokens is not None else self.defult_output_max_character
+        temperature = temperature or self.defult_generation_temperature
+        max_tokens = max_out_tokens or self.defult_output_max_character
 
-        response = self.client.chat(
-            model=self.generate_model_id,
-            chat_history=chat_history,
-            message=self.process_text(prompt),
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        messages = []
+        for msg in chat_history:
+            if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                messages.append({"role": msg["role"], "content": msg["content"]})
+        messages.append({"role": "user", "content": self.process_text(prompt)})
 
-        return response
-
-    
-    def embed_text(self, text: str, dcoument_type: str = None):
-        if not self.client:
-            self.logger.error("Cohere client not initialized")
-            return None
-
-        if not self.emmbedding_model_id:
-            self.logger.error("Cohere embedding model not set")
-            return None
-
-        payload = self.process_text(text)
-        if not payload.strip():
-            self.logger.error("Empty text provided for embedding")
-            return None
-
-       
-        input_type = "search_document"
-        if dcoument_type and "qur" in str(dcoument_type).lower():
-            input_type = "search_query"
-
-        response = None
         try:
-           
-            response = self.client.embeddings.create(
-                model=self.emmbedding_model_id,
-                texts=[payload],
-                input_type=input_type
-            )
+            response = self.client.chat(
+        model=self.generate_model_id,
+        messages=messages,
+ )
+
+            if hasattr(response, "message") and hasattr(response.message, "content"):
+                content_blocks = response.message.content
+                if isinstance(content_blocks, list) and len(content_blocks) > 0:
+                    block = content_blocks[0]
+                    if hasattr(block, "text"):
+                        return block.text
+            return response
+
         except Exception as e:
-            try:
-            
-                response = self.client.embed(
-                    model=self.emmbedding_model_id,
-                    texts=[payload],
-                    input_type=input_type
-                )
-            except Exception as e2:
-                self.logger.error(f"Cohere embedding request failed: {e2}")
-                return None
-        def extract_embedding(obj):
-            if obj is None:
-                return None
+            self.logger.error(f"💥 Cohere chat request failed: {e}")
+            raise e
 
-            
-            if hasattr(obj, "embeddings"):
-                emb = getattr(obj, "embeddings")
-                if isinstance(emb, list) and len(emb) > 0:
-                    item = emb[0]
-                    if hasattr(item, "embedding"):
-                        return list(item.embedding)
-                    if isinstance(item, dict) and "embedding" in item:
-                        return list(item["embedding"])
-                    if isinstance(item, (list, tuple)):
-                        return list(item)
-                elif isinstance(emb, dict) and "embedding" in emb:
-                    return list(emb["embedding"])
-                elif isinstance(emb, (list, tuple)) and all(isinstance(x, (float, int)) for x in emb):
-                    return list(emb)
 
-           
-            if hasattr(obj, "data"):
-                data = getattr(obj, "data")
-                if isinstance(data, list) and len(data) > 0:
-                    item = data[0]
-                    if hasattr(item, "embedding"):
-                        return list(item.embedding)
-                    if isinstance(item, dict) and "embedding" in item:
-                        return list(item["embedding"])
-
-     
-            if isinstance(obj, dict):
-                if "embeddings" in obj and isinstance(obj["embeddings"], list):
-                    emb = obj["embeddings"][0]
-                    if isinstance(emb, dict) and "embedding" in emb:
-                        return list(emb["embedding"])
-                    if isinstance(emb, (list, tuple)):
-                        return list(emb)
-                if "data" in obj and isinstance(obj["data"], list):
-                    item = obj["data"][0]
-                    if isinstance(item, dict) and "embedding" in item:
-                        return list(item["embedding"])
-
-        
-            if hasattr(obj, "embedding"):
-                return list(getattr(obj, "embedding"))
-
-            return None
-
-        emb = extract_embedding(response)
-        if emb:
-            self.logger.info(f"✅ Cohere embedding generated successfully (len={len(emb)})")
-            return emb
-
+    def embed_text(self, text: str, dcoument_type: str = None):
         try:
-            self.logger.warning(f"⚠️ Cohere unknown response structure: {response}")
-        except Exception:
-            pass
+            input_type = "search_document"
+            if dcoument_type and "query" in str(dcoument_type).lower():
+                input_type = "search_query"
 
-        return None
+            response = self.client.embed(
+                model=self.emmbedding_model_id,
+                input_type=input_type,
+                texts=[self.process_text(text)],
+            )
+
+            #  Cohere V2 structure
+            if hasattr(response, "embeddings") and hasattr(response.embeddings, "float_"):
+                return response.embeddings.float_[0]
+
+            elif hasattr(response, "data") and len(response.data) > 0 and hasattr(response.data[0], "embedding"):
+                return response.data[0].embedding
+
+            else:
+                raise ValueError("Unknown embedding response structure")
+
+        except Exception as e:
+            self.logger.error(f"💥 Error getting embedding: {e}")
+            raise e
+
+    def embed(self, texts: list[str], model: str = None, input_type: str = None):
+
+        embeddings = []
+        for text in texts:
+            emb = self.embed_text(text, dcoument_type=input_type)
+            if emb:
+                embeddings.append(emb)
+        return embeddings
+
 
     def constract_prompt(self, prompt: str, role: str):
         return {"role": role, "content": self.process_text(prompt)}

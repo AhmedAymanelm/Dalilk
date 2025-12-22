@@ -5,17 +5,13 @@ import logging
 
 
 
+
 class OpenAIProvider(LLMInterfaceFactory):
     def __init__(self, api_key:str, api_url:str, defult_input_max_character :int=1000,
                  defult_output_max_character :int=1000,defult_generation_temperature :float=0.1,):
         
-        self.api_key = api_key
-        self.api_url = api_url
-        self.client = OpenAI(
-            api_key=api_key,
-            api_url=api_url
-            
-            )
+     
+     
         
        
 
@@ -27,6 +23,11 @@ class OpenAIProvider(LLMInterfaceFactory):
         self.emmbedding_model_id = None
 
         self.embedding_size = None
+        self.client = OpenAI(
+             api_key=api_key,
+            
+            )
+        self.enums = OPENAIENUM
 
 
         self.logger = logging.getLogger(__name__)
@@ -69,18 +70,37 @@ class OpenAIProvider(LLMInterfaceFactory):
             self.constract_prompt(prompt=prompt ,role=OPENAIENUM.USER.value)
             )
         
-        response = self.client.chat.completions.create(
-            model=self.generate_model_id,
-            messages=chat_history,
-            max_tokens=max_out_tokens,
-            temperature=temperature
-        )
+        # Build request parameters
+        kwargs = {
+            "model": self.generate_model_id,
+            "messages": chat_history,
+            "max_completion_tokens": max_out_tokens,
+            "temperature": temperature
+        }
+        
+        # Try with all parameters, handle unsupported ones
+        try:
+            response = self.client.chat.completions.create(**kwargs)
+        except Exception as e:
+            error_msg = str(e)
+            
+            # Remove temperature if not supported
+            if "temperature" in error_msg and "does not support" in error_msg:
+                kwargs.pop("temperature", None)
+                try:
+                    response = self.client.chat.completions.create(**kwargs)
+                except Exception as e2:
+                    error_msg = str(e2)
+                    # Still failing? This shouldn't happen
+                    raise e2
+            else:
+                raise e
 
         if not response or not response.choices or len(response.choices) == 0 or not response.choices[0].message:
             self.logger.error(" while OpenAI generation request failed")
             return None
         
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
         
     
 

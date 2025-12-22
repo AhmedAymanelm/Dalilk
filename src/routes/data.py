@@ -24,9 +24,13 @@ logger = logging.getLogger("uvicorn.error")
 
 data_router = APIRouter(prefix="/api/v1/data", tags=["api_v1", "data"])
 
+# Default project ID - ثابت لكل العمليات
+DEFAULT_PROJECT_ID = "default"
 
-@data_router.post("/upload/{project_id}")
-async def upload_file(request: Request, project_id: str, file: UploadFile, app_settings: Settings = Depends(get_settings)):
+
+@data_router.post("/upload")
+async def upload_file(request: Request, file: UploadFile, app_settings: Settings = Depends(get_settings)):
+    project_id = DEFAULT_PROJECT_ID
     project_model = await ProjectModels.create_instans(db_client=request.app.mongodb)
     project = await project_model.get_project_or_create_one(project_id=project_id)
 
@@ -56,8 +60,9 @@ async def upload_file(request: Request, project_id: str, file: UploadFile, app_s
 
 
 # Create endpoint process data
-@data_router.post("/process/{project_id}")
-async def process_endpoint(request: Request, project_id: str, process_request: ProcessReqest):
+@data_router.post("/process")
+async def process_endpoint(request: Request, process_request: ProcessReqest):
+    project_id = DEFAULT_PROJECT_ID
     chunk_size = process_request.chunk_size
     chunk_overlap = process_request.overlap
     do_reset = process_request.do_reset
@@ -78,7 +83,7 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={
                     "status": ResponseStatus.NOT_FOUND.value,
-                    "detail": f"File '{process_request.file_id}' not found in project {project_id}",
+                    "detail": f"File '{process_request.file_id}' not found",
                 },
             )
 

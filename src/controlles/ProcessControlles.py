@@ -48,7 +48,13 @@ class ProcessControlles(BaseControlls):
         if file_ext == csv_val:
             return CSVLoader(file_path, encoding='utf-8-sig')
         if file_ext == json_val:
-            return JSONLoader(file_path, jq_schema='.', text_content=False)
+            # استخدام jq_schema لاستخراج rag_content من كل عنصر في المصفوفة
+            return JSONLoader(
+                file_path, 
+                jq_schema='.[]',  # كل عنصر في المصفوفة
+                content_key='rag_content',  # استخدام rag_content كمحتوى
+                text_content=False
+            )
 
         return None
         
@@ -64,6 +70,16 @@ class ProcessControlles(BaseControlls):
 
 
     def split_file_content(self, file_content : list ,file_id: str, chunk_size: int = 100, chunk_overlap: int=20):
+        """
+        تقسيم المحتوى إلى chunks.
+        لو chunk_size أكبر من طول المحتوى، كل document هيكون chunk واحد.
+        """
+        # لو كل document أصغر من chunk_size، نرجعهم كما هم بدون تقسيم
+        all_small = all(len(rec.page_content) <= chunk_size for rec in file_content)
+        
+        if all_small and chunk_overlap == 0:
+            # كل document هيكون chunk واحد
+            return file_content
 
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,

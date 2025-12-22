@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any
+from models.db_schemas import RetrevedDecument
+
 
 class VectorDbInterface(ABC):
 
@@ -45,6 +47,6 @@ class VectorDbInterface(ABC):
         pass
 
     @abstractmethod
-    def search_vectors(self, collection_name: str, vectors:list ,limit:int) :
+    def search_vectors(self, collection_name: str, vectors:list ,limit:int) -> List[RetrevedDecument] :
         pass
     

@@ -28,4 +28,12 @@ class DataChunk(BaseModel):
                 "unique": False
             }
         ]
+    
+
+class RetrevedDecument(BaseModel):
+    text : str 
+    score : float
+
+
+
  

@@ -3,9 +3,10 @@ from enum import Enum
 class LLMType(Enum):
      OPENAI = "openai"
      COhere="cohere"
+     Gini = "gemini"
      Groq="groq"
-
      HuggingFace="huggingface"
+
      Azure="azure"
      Google="google"
      Custom="custom"
@@ -29,9 +30,25 @@ class CohereENUM(Enum):
 
 
 class GROQENUM(Enum):
+    
+    SYSTEM = "system"
+    USER = "user"
+    
+    ASSISTANT = "assistant"
+
+class GINIEnum(Enum):
+    SYSTEM = "system"
+    USER = "user"
+    
+    ASSISTANT = "assistant"
+
+
+
+class HuggingFaceENUM(Enum):
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
+
 
 class DecumentTypeEnum(Enum):
      DECUMENT = "decument"

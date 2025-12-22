@@ -1,11 +1,12 @@
 from fastapi import FastAPI
-from routes import base ,data, nlp
+from routes import base ,data, nlp, voice
+from routes import voice_whisper
 from motor.motor_asyncio import AsyncIOMotorClient
 from  helper.config import get_settings
 from stores.llm.LLmProverFactory import LLmProverFactory
 from stores.Vector_db.VectorDbFactory import VectorDbFactory
-
-
+from stores.llm.LANG_TEM.Template_parsers import Template_parser
+from controlles.NLPController import NLPController
 
 
 app = FastAPI()
@@ -42,6 +43,19 @@ async def startup_span():
     if not app.vector_db_client:
         raise RuntimeError(f"Vector DB client not created for provider: {settings.VECTOR_DB_BACKEND}")
     app.vector_db_client.connect()
+    app.template_parser = Template_parser(
+        language=settings.PRIMAM_LANGUAGE,
+        default_language=settings.DEFULTE_LANGUAGE,
+        )
+    
+    # إنشاء NLPController كـ singleton للحفاظ على الـ memory
+    app.nlp_controller = NLPController(
+        generation_client=app.generation_client,
+        embedding_client=app.embedding_client,
+        vector_db_client=app.vector_db_client,
+        template_parser=app.template_parser,
+    )
+   
 
 
 async def shutdown_span():
@@ -58,4 +72,6 @@ app.on_event("shutdown")(shutdown_span)
 app.include_router(base.base_router)
 app.include_router(data.data_router)
 app.include_router(nlp.nlp_router)
+app.include_router(voice.voice_router)
+app.include_router(voice_whisper.voice_whisper_router)
 

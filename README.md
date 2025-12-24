@@ -1,5 +1,5 @@
 
-# laqtha
+# dailik
 Hotel reservation program 
  
  ## Reqirments

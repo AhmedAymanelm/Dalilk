@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# سكريبت لتشغيل السيرفر
 
 cd "$(dirname "$0")"
 source ../venv/bin/activate

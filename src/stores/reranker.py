@@ -56,23 +56,6 @@ class SimpleReranker:
         elif 'suv' in query_lower:
             features['body_type'] = 'suv'
         
-        # Price extraction (e.g., "اقل من 200 الف" or "تحت 300000")
-        price_patterns = [
-            r'اقل من\s*([\d,]+)',
-            r'تحت\s*([\d,]+)',
-            r'under\s*([\d,]+)',
-            r'below\s*([\d,]+)',
-            r'less than\s*([\d,]+)',
-        ]
-        for pattern in price_patterns:
-            match = re.search(pattern, query_lower)
-            if match:
-                price_str = match.group(1).replace(',', '')
-                try:
-                    features['price_max'] = int(price_str)
-                except:
-                    pass
-        
         return features
     
     def calculate_keyword_score(self, result_text: str, query: str) -> float:
@@ -115,16 +98,15 @@ class SimpleReranker:
             if query_features['body_type'] in result_text:
                 score += 1.0
         
-        # Price matching (زيادة الوزن)
         if query_features['price_max']:
-            max_score += 3.0  # وزن السعر أكبر
+            max_score += 3.0
             price_match = re.search(r'([\d,]+)\s*egp', result_text, re.IGNORECASE)
             if price_match:
                 try:
                     result_price = int(price_match.group(1).replace(',', ''))
                     if result_price <= query_features['price_max']:
                         ratio = result_price / query_features['price_max']
-                        score += 3.0 * (1.0 - ratio * 0.3)  # تعطي نقاط أكبر للسيارات الأرخص
+                        score += 3.0 * (1.0 - ratio * 0.3)
                 except:
                     pass
         
@@ -155,7 +137,6 @@ class SimpleReranker:
             feature_score = self.calculate_feature_score(result, query_features)
             
             # Combined score with weights
-            # Vector similarity: 50%, Keywords: 10%, Features (يشمل السعر): 40%
             combined_score = (
                 vector_score * 0.5 +
                 keyword_score * 0.1 +

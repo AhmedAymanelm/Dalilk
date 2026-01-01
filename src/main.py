@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-from routes import base ,data, nlp, voice
-from routes import voice_whisper
+from routes import base ,data, nlp
 from motor.motor_asyncio import AsyncIOMotorClient
 from  helper.config import get_settings
 from stores.llm.LLmProverFactory import LLmProverFactory
@@ -48,7 +47,6 @@ async def startup_span():
         default_language=settings.DEFULTE_LANGUAGE,
         )
     
-    # إنشاء NLPController كـ singleton للحفاظ على الـ memory
     app.nlp_controller = NLPController(
         generation_client=app.generation_client,
         embedding_client=app.embedding_client,
@@ -72,6 +70,4 @@ app.on_event("shutdown")(shutdown_span)
 app.include_router(base.base_router)
 app.include_router(data.data_router)
 app.include_router(nlp.nlp_router)
-app.include_router(voice.voice_router)
-app.include_router(voice_whisper.voice_whisper_router)
 

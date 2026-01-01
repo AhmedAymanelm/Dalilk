@@ -63,9 +63,10 @@ class CohereProvider(LLMInterfaceFactory):
 
         try:
             response = self.client.chat(
-        model=self.generate_model_id,
-        messages=messages,
- )
+                model=self.generate_model_id,
+                messages=messages,
+                temperature=temperature,  # 🔥 FIX: Actually use temperature!
+            )
 
             if hasattr(response, "message") and hasattr(response.message, "content"):
                 content_blocks = response.message.content

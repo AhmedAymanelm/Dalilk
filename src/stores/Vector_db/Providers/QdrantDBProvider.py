@@ -108,11 +108,9 @@ class QdrantDBProvider(VectorDbInterface):
                     size=embidding_size,
                     distance=self.distance_method,
                 ),
-                # استخدم dict مباشر لتفادي مشاكل OptimizersConfig القديمة
                 optimizers_config={
                     "indexing_threshold": 0
                 },
-                # HNSWConfig كامل مع كل الحقول المطلوبة
                 hnsw_config=models.HnswConfig(
                     m=16,
                     ef_construct=100,

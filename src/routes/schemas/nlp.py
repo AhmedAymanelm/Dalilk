@@ -8,9 +8,9 @@ class Push_Request(BaseModel):
 
 
 class Search_Reqest (BaseModel):
-    message : str = Field(..., alias='query')  # يقبل message أو query
+    message : str = Field(..., alias='query')
     limit : Optional [int] = 5
-    session_id: Optional[str] = None  # معرف الجلسة للمستخدم
+    session_id: Optional[str] = None
     
     class Config:
-        populate_by_name = True  # يسمح باستخدام message أو query
+        populate_by_name = True

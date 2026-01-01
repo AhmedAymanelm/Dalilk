@@ -79,18 +79,18 @@ class NLPController(BaseControlls):
         Search in vector DB and rerank the results using SimpleReranker
         """
         try:
-            # 1️⃣ الحصول على embedding للسؤال
+            
             query_vector = self.get_query_embedding(message)
             collection_name = self.create_collection_name(project_id=project_id)
 
-            # 2️⃣ البحث في قاعدة البيانات
+            
             initial_results = self.vector_db_client.search_vectors(
                 collection_name=collection_name,
                 vector=query_vector,
-                limit=top_k * 4,  # Get extra for reranking
+                limit=top_k * 4,  
             )
 
-            # 3️⃣ تمرير النتائج على reranker
+            
             if initial_results and len(initial_results) > 0:
                 reranked_results = self.reranker.rerank(
                     results=initial_results,
@@ -138,17 +138,17 @@ class NLPController(BaseControlls):
                 for c in chunks_list
             ]
 
-            # خلي Qdrant يولد UUIDs تلقائيًا
+            
             record_ids = None
 
-            # إنشاء collection لو مش موجودة
+            
             self.vector_db_client.create_collection(
                 collection_name=collection_name,
                 embidding_size=len(vectors[0]),
                 do_reset=False,
             )
 
-            # إدخال البيانات
+           
             self.vector_db_client.insert_many(
                 collection_name=collection_name,
                 texts=texts,
@@ -175,40 +175,215 @@ class NLPController(BaseControlls):
 
         memory = self.get_or_create_memory(session_id)
         chat_history_messages = memory.messages
+        
+        print(f"\n💬 [MEMORY DEBUG]")
+        print(f"   Session ID: {session_id}")
+        print(f"   Memory messages count: {len(chat_history_messages)}")
+        for idx, msg in enumerate(chat_history_messages):
+            msg_type = "User" if isinstance(msg, HumanMessage) else "Assistant"
+            msg_preview = msg.content[:80] if len(msg.content) > 80 else msg.content
+            print(f"   [{idx}] {msg_type}: {msg_preview}")
 
         try:
-            should_search = self.should_search_database(message, chat_history_messages)
-
+            # ✅ Simple logic: Show cars after proper discussion
+            # Ask 2-3 questions to understand user needs before showing cars
             retrived_document = []
             database_prompt = ""
+            
+            # 🔥 NO STATIC DETECTION - Let LLM handle everything!
+            # LLM is smart enough to understand greetings, off-topic, follow-ups, etc.
+            
+            message_lower = message.lower()
+            
+            # Check if user gave car criteria
+            has_budget = any(x in message_lower for x in ['ألف', 'الف', 'مليون', 'جنيه', '000'])
+            has_brand = any(x in message_lower for x in [
+                'mg', 'byd', 'تويوتا', 'هيونداي', 'مرسيدس', 'بي ام',
+                'بورش', 'porsche', 'فيراري', 'ferrari', 'لامبورجيني', 'lamborghini',
+                'بنتلي', 'bentley', 'رولز', 'rolls', 'اودي', 'audi',
+                'نيسان', 'nissan', 'كيا', 'kia', 'فورد', 'ford',
+                'جينيسيس', 'genesis', 'كوبرا', 'cupra',
+                'بيجو', 'peugeot', 'شيري', 'chery', 'جيلى', 'جيلي', 'geely',
+                'سوزوكي', 'suzuki', 'ميتسوبيشي', 'mitsubishi', 'سكودا', 'skoda',
+                'سوبارو', 'subaru', 'هوندا', 'honda', 'مازدا', 'mazda',
+                'سيتروين', 'citroen', 'رينو', 'renault', 'جيب', 'jeep', 
+                'اوبل', 'opel', 'ام جى', 'ام جي',
+            ])
+            has_type = any(x in message_lower for x in ['sedan', 'suv', 'سيدان', 'هاتشباك'])
+            has_usage = any(x in message_lower for x in ['شغل', 'سفر', 'عائلي', 'شخصي'])
+            
+            # Count criteria
+            criteria_count = sum([has_budget, has_brand, has_type, has_usage])
+            
+            # 🔥 Need at least 3 criteria OR 6+ messages (3 Q&A rounds)
+            user_gave_criteria = has_budget or has_brand or has_type or has_usage
+            has_enough_criteria = criteria_count >= 3 or has_brand  # Brand alone is enough
+            conversation_has_enough_info = len(chat_history_messages) >= 6 or has_enough_criteria
+            
+            print(f"\n🔍 [SEARCH DECISION]")
+            print(f"   Chat history messages: {len(chat_history_messages)}")
+            print(f"   User gave criteria: {user_gave_criteria} (budget={has_budget}, brand={has_brand}, type={has_type}, usage={has_usage})")
+            print(f"   Criteria count: {criteria_count}")
+            print(f"   Has enough info: {conversation_has_enough_info}")
+            
+            # Always search if user gave criteria or conversation progressed
+            if conversation_has_enough_info:
+                print(f"Sending cars to LLM")
+                
+                # 🔍 Smart Top-K Adjustment
+                import re
+                
+                # Known brands normalized
+                brands = [
+                    'mg', 'byd', 'تويوتا', 'هيونداي', 'مرسيدس', 'بي ام',
+                    'بورش', 'porsche', 'فيراري', 'ferrari', 'لامبورجيني', 'lamborghini',
+                    'بنتلي', 'bentley', 'رولز', 'rolls', 'اودي', 'audi',
+                    'نيسان', 'nissan', 'كيا', 'kia', 'فورد', 'ford',
+                    'سيتروين', 'citroen', 'رينو', 'renault', 'جيب', 'jeep', 
+                    'اوبل', 'opel', 'بيجو', 'peugeot', 'شيري', 'chery', 'جيلى', 'geely',
+                    'سوزوكى', 'suzuki', 'ميتسوبيشي', 'mitsubishi', 'سكودا', 'skoda',
+                    'سوبارو', 'subaru', 'هوندا', 'honda', 'مازدا', 'mazda',
+                    'جينيسيس', 'genesis', 'كوبرا', 'cupra',
+                ]
+                
+                ignored_tokens = [
+                    'sedan', 'suv', 'hatchback', 'coupe', 'crossover', 'fob', 
+                    'automatic', 'manual', 
+                    'new', 'used', 'best', 'price', 'cost', 'buy', 'want', 'need', 'show',
+                    'details', 'info', 'information', 'about', 'car', 'cars', 'vehicle',
+                    'good', 'bad', 'review', 'opinion', 'vs', 'compare',
+                    'سيدان', 'هاتشباك', 'اس', 'يو', 'في', 'اوتوماتيك', 'مانيوال',
+                    'جديد', 'مستعمل', 'سعر', 'اسعار', 'بكام', 'بكم',
+                    'عربية', 'عربيات', 'سيارة', 'سيارات',
+                    'تفاصيل', 'معلومات', 'صور', 'شكل',
+                    'رايك', 'ايه', 'احسن', 'افضل'
+                ]
+                
+                # Check for "extra" specific tokens that are NOT the brand and NOT ignored
+                tokens = re.findall(r'[a-zA-Z0-9\u0600-\u06FF]+', message_lower)
+                
+                def is_specific_token(t):
+                    if t.isdigit(): return False # Ignore pure numbers (often years or prices)
+                    if t in brands: return False
+                    if t in ignored_tokens: return False
+                    if len(t) < 2: return False
+                    return True
 
-            if should_search:
-                # البحث في الـ vector DB وتمرير النتائج للـ reranker
+                specific_tokens = [t for t in tokens if is_specific_token(t)]
+                
+                has_specific_model_hint = has_brand and len(specific_tokens) > 0
+                
+                # 🔥 Fix: Increase defaults. Even for specific models, show variations (e.g. different years/trims)
+                dynamic_top_k = 3 if has_specific_model_hint else 10
+                
+                # Respect the requested top_k from parameter if provided and larger
+                if top_k and top_k > dynamic_top_k:
+                    dynamic_top_k = top_k
+
+                print(f"   🎯 Search strategy: {'Specific Car' if has_specific_model_hint else 'Broad Search'} -> top_k={dynamic_top_k}")
+
+                
+                # If message is just "show me" or "tell me details", get car name from AI's previous response
+                search_query = message
+                clean_msg_tokens = [t for t in tokens if t not in ignored_tokens]
+                
+                # 🔥 Check for "show me" type queries
+                show_keywords = ['وريني', 'ورني', 'عايز اشوف', 'عايز أشوف', 'التفاصيل', 'مواصفات', 'اعرض', 'شوفني', 'show', 'details']
+                is_show_request = any(k in message_lower for k in show_keywords)
+                
+                # If current message has NO specific content (brands, numbers, or non-ignored words)
+                # OR if it's a "show me" request
+                if (not has_brand and not has_budget and len(clean_msg_tokens) == 0) or is_show_request:
+                    print(f"   ⚠️ Generic/show query detected '{message}' - Looking back in history for car names...")
+                    
+                    found_context = False
+                    # Look back in messages - check BOTH user and AI messages for car names
+                    for past_msg in reversed(chat_history_messages[-6:]):  # Look at last 6 messages (3 exchanges)
+                        content_lower = past_msg.content.lower() if past_msg.content else ""
+                        
+                        # 🔥 For AI messages: Extract car names mentioned
+                        if isinstance(past_msg, AIMessage):
+                            # Look for brand names in AI's response
+                            for brand in brands:
+                                if brand in content_lower:
+                                    # Extract the sentence containing the brand
+                                    import re
+                                    brand_patterns = [
+                                        rf'{brand}\s+[\u0600-\u06FF\w]+\s*\d*',
+                                        rf'{brand}',
+                                    ]
+                                    for pattern in brand_patterns:
+                                        match = re.search(pattern, content_lower)
+                                        if match:
+                                            car_name = match.group(0)
+                                            search_query = car_name
+                                            print(f"   ✅ Found car in AI response: '{car_name}'")
+                                            found_context = True
+                                            break
+                                    if found_context:
+                                        break
+                            if found_context:
+                                break
+                        
+                        # 🔥 For User messages: Check if they mentioned a brand
+                        elif isinstance(past_msg, HumanMessage):
+                            past_has_brand = any(b in content_lower for b in brands)
+                            past_has_budget = any(b in content_lower for b in ['ألف', 'الف', 'مليون', 'جنيه'])
+                            if past_has_brand or past_has_budget:
+                                search_query = f"{past_msg.content} {message}"
+                                print(f"   ✅ Appended context from user history: '{past_msg.content}'")
+                                found_context = True
+                                break
+                    
+                    if not found_context:
+                        print(f" ⚠️ No car context found in history")
+                
+                print(f" 🚀 Final Search Query: {search_query}")
+
                 retrived_document = self.search_in_vectordb(
                     project_id=project_id,
-                    message=message,
-                    top_k=top_k,
+                    message=search_query,
+                    top_k=dynamic_top_k,
                 )
+            else:
+                print(f"   ⏭️  Skipping search - need more info from user")
 
-                if retrived_document and len(retrived_document) > 0:
-                    # بناء النص من نتائج الـ database
-                    database_prompt = "\n".join(
-                        [
-                            self.template_parser.get(
-                                "Rag",
-                                "database_prompt",
-                                {"db_num": idx + 1, "chunk_text": db.text},
-                            )
-                            for idx, db in enumerate(retrived_document)
-                        ]
-                    )
+
+
+            # Simply send all results to LLM - let it decide!
+            if retrived_document and len(retrived_document) > 0:
+                database_results = "\n".join(
+                    [
+                        self.template_parser.get(
+                            "Rag",
+                            "database_prompt",
+                            {"db_num": idx + 1, "chunk_text": db.text},
+                        )
+                        for idx, db in enumerate(retrived_document)
+                    ]
+                )
+                
+                database_prompt = f"""
+## 🚗 SEARCH RESULTS (Available Cars):
+{database_results}
+
+Note: These cars will appear in a 'cars' list below your message if you recommend them.
+"""
+                print(f"✅ Sending {len(retrived_document)} cars to LLM")
+            else:
+                database_prompt = ""
+                print(f" No cars found in search")          
 
             system_prompt = self.template_parser.get("Rag", "system_prompt")
             footer_prompt = self.template_parser.get("Rag", "footer_prompt")
 
-            user_question_section = f"\n\n## سؤال المستخدم:\n{message}\n"
+            # 🔥 DYNAMIC INSTRUCTION: Only tell LLM to show cars if we actually found them
+            if retrived_document and len(retrived_document) > 0:
+                footer_prompt += "\n\nمهم جداً: بما إن فيه نتايج عربيات ظهرت في البحث، لازم وأنت بتشرح أي عربية منهم تقول في آخر كلامك: 'شوف الخيارات دي!' عشان تظهر ككارت لليوزر."
+                footer_prompt += "\nتنبيه: لو العميل سأل عن عربية واحدة، اشرحها هي بس ومتتكلمش عن العربيات التانية اللي ظهرت في البحث."
 
-            # تحويل الـ chat history لهيئة مناسبة للـ LLM
+            user_question_section = f"\n\n## User Question:\n{message}\n"
+
             chat_history = []
             chat_history.append({"role": "system", "content": system_prompt})
             for msg in chat_history_messages:
@@ -225,13 +400,11 @@ class NLPController(BaseControlls):
                 ]
             )
 
-            # توليد الإجابة عبر الـ LLM
             answer = self.generation_client.generate_text(
                 prompt=full_prompt,
                 chat_history=chat_history,
             )
 
-            # حفظ السؤال والإجابة في الـ chat history
             if answer:
                 memory.add_user_message(message)
                 memory.add_ai_message(answer)
@@ -242,30 +415,9 @@ class NLPController(BaseControlls):
             answer = None
             retrived_document = []
 
+        print(f"\n📤 [RETURN] Returning {len(retrived_document)} documents to API")
         return answer, full_prompt, self._memory_to_dict(memory), retrived_document
 
-    def should_search_database(self, message: str, chat_history: list) -> bool:
-        message_lower = message.lower()
-
-        greetings = ['مرحبا', 'السلام', 'أهلا', 'هاي', 'عايز عربية', 'محتاج عربية', 'ساعدني']
-        if any(g in message_lower for g in greetings) and len(chat_history) < 2:
-            return False
-
-        if len(message.split()) <= 2 and len(chat_history) > 0:
-            return False
-
-        has_criteria = any([
-            any(price_word in message_lower for price_word in ['ألف', '000', 'جنيه', 'egp']),
-            any(fuel in message_lower for fuel in ['كهربا', 'بنزين', 'ديزل', 'electric', 'petrol']),
-            any(body in message_lower for body in ['sedan', 'suv', 'سيدان', 'هاتشباك']),
-            any(brand in message_lower for brand in ['mg', 'byd', 'chery', 'jeep', 'geely']),
-            'مواصفات' in message_lower or 'سعر' in message_lower,
-        ])
-
-        if not has_criteria and len(chat_history) >= 4:
-            return True
-
-        return has_criteria
 
     def _memory_to_dict(self, memory: InMemoryChatMessageHistory) -> list:
         chat_history = []

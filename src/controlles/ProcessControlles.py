@@ -48,11 +48,44 @@ class ProcessControlles(BaseControlls):
         if file_ext == csv_val:
             return CSVLoader(file_path, encoding='utf-8-sig')
         if file_ext == json_val:
-            # استخدام jq_schema لاستخراج rag_content من كل عنصر في المصفوفة
+            # 🔥 Fix: Ensure rag_content exists
+            try:
+                import json
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                modified = False
+                if isinstance(data, list):
+                    for item in data:
+                        if 'rag_content' not in item and isinstance(item, dict):
+                            # Generate rag_content form available fields
+                            name = item.get('name', '')
+                            price = item.get('price', '')
+                            specs = item.get('structured_details') or item.get('specs') or {}
+                            
+                            specs_str = ""
+                            if isinstance(specs, dict):
+                                specs_list = []
+                                # Mapping common keys to Arabic for better RAG
+                                for k, v in specs.items():
+                                    if v:
+                                        specs_list.append(f"{k}: {v}")
+                                specs_str = ", ".join(specs_list)
+                            
+                            item['rag_content'] = f"السيارة: {name}. السعر: {price}. المواصفات: {specs_str}."
+                            modified = True
+                
+                if modified:
+                    print(f"🔧 Auto-generated rag_content for file: {file_id}")
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+            except Exception as e:
+                print(f"⚠️ Error ensuring rag_content: {e}")
+
             return JSONLoader(
                 file_path, 
-                jq_schema='.[]',  # كل عنصر في المصفوفة
-                content_key='rag_content',  # استخدام rag_content كمحتوى
+                jq_schema='.[]',
+                content_key='rag_content',
                 text_content=False
             )
 
@@ -74,11 +107,9 @@ class ProcessControlles(BaseControlls):
         تقسيم المحتوى إلى chunks.
         لو chunk_size أكبر من طول المحتوى، كل document هيكون chunk واحد.
         """
-        # لو كل document أصغر من chunk_size، نرجعهم كما هم بدون تقسيم
         all_small = all(len(rec.page_content) <= chunk_size for rec in file_content)
         
         if all_small and chunk_overlap == 0:
-            # كل document هيكون chunk واحد
             return file_content
 
         text_splitter = RecursiveCharacterTextSplitter(

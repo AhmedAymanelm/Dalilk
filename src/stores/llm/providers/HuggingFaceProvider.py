@@ -32,7 +32,6 @@ class HuggingFaceProvider(LLMInterfaceFactory):
         self.enums = HuggingFaceENUM
         self.logger = logging.getLogger(__name__)
         
-        # تحديد الجهاز (GPU أو CPU)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.logger.info(f"🔧 Using device: {self.device}")
 
@@ -51,7 +50,6 @@ class HuggingFaceProvider(LLMInterfaceFactory):
         self.embedding_size = embedding_size
         
         try:
-            # Lazy import لتجنب تحميل TensorFlow
             from sentence_transformers import SentenceTransformer
             
             self.logger.info(f"📥 Loading Hugging Face model: {model_id}")
@@ -84,10 +82,9 @@ class HuggingFaceProvider(LLMInterfaceFactory):
         
         try:
             processed_text = self.process_text(text)
-            # تحويل النص إلى embedding
             embedding = self.embedding_model.encode(
                 processed_text,
-                convert_to_tensor=False,  # نرجع numpy array
+                convert_to_tensor=False,
                 show_progress_bar=False
             )
             return embedding.tolist()
@@ -103,15 +100,13 @@ class HuggingFaceProvider(LLMInterfaceFactory):
             raise ValueError("❌ Embedding model not loaded. Call set_embedding_model() first.")
         
         try:
-            # معالجة النصوص
             processed_texts = [self.process_text(text) for text in texts]
             
-            # تحويل دفعة واحدة (أسرع من واحد واحد)
             embeddings = self.embedding_model.encode(
                 processed_texts,
                 convert_to_tensor=False,
                 show_progress_bar=False,
-                batch_size=32  # يمكنك تعديل حجم الـ batch
+                batch_size=32
             )
             
             return [emb.tolist() for emb in embeddings]

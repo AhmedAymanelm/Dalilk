@@ -1,8 +1,8 @@
-# 🚗 Dalilk - AI Car Assistant
+# Dalilk - AI Car Assistant
 
 An intelligent AI-powered car recommendation system for the Egyptian market, built with FastAPI and advanced RAG (Retrieval-Augmented Generation) technology.
 
-## 🌟 Features
+##  Features
 
 - **Smart Car Recommendations**: AI-powered suggestions based on user preferences
 - **Natural Language Processing**: Understands Arabic and English queries

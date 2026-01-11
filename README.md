@@ -138,19 +138,15 @@ Developed by the Dalilk AI team for the Egyptian car market.
 <div align="center">
   <img 
     src="https://media.licdn.com/dms/image/v2/D4D22AQEohWhwZJSDGQ/feedshare-shrink_800/B4DZt510U_JUAg-/0/1767275710488?e=1769644800&v=beta&t=QyjuTPY7cA5riV3dWQiz_ZvFqnBVSsaMa5gbzHYp7oU"
-    alt="Workspace"
-    width="60%"
+    alt="Workspace 1"
+    width="45%"
   />
-
-</div>
-
-
-<div align="center">
+  
   <img 
     src="https://media.licdn.com/dms/image/v2/D4D22AQH5IjFGPitmhg/feedshare-shrink_800/B4DZt510VGIYAg-/0/1767275711024?e=1769644800&v=beta&t=6x4vkD4VGrDoRPSvFO9274mtSHT7YYEN_filLP3oSzE"
-    alt="Workspace"
-    width="60%"
+    alt="Workspace 2"
+    width="45%"
   />
-
 </div>
+
 

@@ -1,3 +1,24 @@
+
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img 
+        src="https://media.licdn.com/dms/image/v2/D4D22AQEohWhwZJSDGQ/feedshare-shrink_800/B4DZt510U_JUAg-/0/1767275710488?e=1769644800&v=beta&t=QyjuTPY7cA5riV3dWQiz_ZvFqnBVSsaMa5gbzHYp7oU"
+        width="300"
+      />
+    </td>
+    <td align="center">
+      <img 
+        src="https://media.licdn.com/dms/image/v2/D4D22AQH5IjFGPitmhg/feedshare-shrink_800/B4DZt510VGIYAg-/0/1767275711024?e=1769644800&v=beta&t=6x4vkD4VGrDoRPSvFO9274mtSHT7YYEN_filLP3oSzE"
+        width="300"
+      />
+    </td>
+  </tr>
+</table>
+
+
+
 # Dalilk - AI Car Assistant
 
 An intelligent AI-powered car recommendation system for the Egyptian market, built with FastAPI and advanced RAG (Retrieval-Augmented Generation) technology.
@@ -134,22 +155,5 @@ This project is part of a graduation project.
 
 Developed by the Dalilk AI team for the Egyptian car market.
 
-
-<table align="center">
-  <tr>
-    <td align="center">
-      <img 
-        src="https://media.licdn.com/dms/image/v2/D4D22AQEohWhwZJSDGQ/feedshare-shrink_800/B4DZt510U_JUAg-/0/1767275710488?e=1769644800&v=beta&t=QyjuTPY7cA5riV3dWQiz_ZvFqnBVSsaMa5gbzHYp7oU"
-        width="300"
-      />
-    </td>
-    <td align="center">
-      <img 
-        src="https://media.licdn.com/dms/image/v2/D4D22AQH5IjFGPitmhg/feedshare-shrink_800/B4DZt510VGIYAg-/0/1767275711024?e=1769644800&v=beta&t=6x4vkD4VGrDoRPSvFO9274mtSHT7YYEN_filLP3oSzE"
-        width="300"
-      />
-    </td>
-  </tr>
-</table>
 
 
